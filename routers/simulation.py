@@ -3,8 +3,14 @@
 from fastapi import APIRouter, HTTPException, Query
 from schemas.simulation import DispatchResult, BidSubmitRequest
 from mock_data.file_storage import get_scenario, get_bids, save_bid
+from services.market_clear.constrained_on import clear_market_constrained_on
+from services.market_clear.fixed_cost_pay_as_bid import clear_market_fixed_pay_as_bid
+from services.market_clear.fixed_cost_uniform import clear_market_fixed_uniform
+from services.market_clear.risk_adjusted_uniform import clear_market_risk_adjusted_uniform
+from services.market_clear.two_stage_market import clear_market_two_stage
 from services.market_clear.uniform_price import clear_market_uniform
 from services.market_clear.pay_as_bid import clear_market_pay_as_bid
+from services.market_clear.zone_limit_uniform import clear_market_zone_uniform
 
 router = APIRouter(prefix="/simulation", tags=["Simulation"])
 
@@ -35,6 +41,17 @@ def get_result(scenario_id: str, type: str = Query("uniform_price")):
         return clear_market_uniform(scenario, bid_data)
     elif type == "pay_as_bid":
         return clear_market_pay_as_bid(scenario, bid_data)
+    elif type == "fixed_cost_uniform":
+        return clear_market_fixed_uniform(scenario, bid_data)
+    elif type == "fixed_cost_pay_as_bid":
+        return clear_market_fixed_pay_as_bid(scenario, bid_data)
+    elif type == "zone_limit_uniform":
+        return clear_market_zone_uniform(scenario, bid_data)
+    elif type == "constrained_on":
+        return clear_market_constrained_on(scenario, bid_data)
+    elif type == "risk_adjusted_uniform":
+        return clear_market_risk_adjusted_uniform(scenario, bid_data)
+    elif type == "two_stage":
+        return clear_market_two_stage(scenario, bid_data)
     else:
         raise HTTPException(status_code=400, detail="Unknown market mechanism")
-

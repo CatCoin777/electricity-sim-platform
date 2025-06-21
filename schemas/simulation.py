@@ -1,12 +1,13 @@
 # schemas/simulation.py
 
 from pydantic import BaseModel
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class Bid(BaseModel):
     offer: float  # 报价
     cost: float  # 成本
+    fixed_cost: Optional[float] = 0.0  # 新增字段，默认 0
 
 
 class ScenarioCreateRequest(BaseModel):
