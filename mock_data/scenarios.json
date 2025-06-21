@@ -1,0 +1,16 @@
+{
+  "lesson01": {
+    "scenario_id": "lesson01",
+    "demand": 3,
+    "participants": [
+      "alice",
+      "bob",
+      "charlie",
+      "dave"
+    ],
+    "enabled_mechanisms": [
+      "uniform_price",
+      "pay_as_bid"
+    ]
+  }
+}
