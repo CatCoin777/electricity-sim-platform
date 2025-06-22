@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电力市场仿真平台</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 400px;
+        }
+        .main-container {
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            background: #2c3e50;
+            color: white;
+            min-height: 100vh;
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 12px 20px;
+            border-radius: 5px;
+            margin: 2px 0;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #34495e;
+            color: white;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            padding: 20px;
+        }
+        .bid-form {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 25px;
+        }
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 15px 0;
+            padding: 20px;
+        }
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-success { background-color: #d4edda; color: #155724; }
+        .status-danger { background-color: #f8d7da; color: #721c24; }
+        .status-warning { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 登录界面 -->
+        <div v-if="!isLoggedIn" class="login-container">
+            <div class="login-card">
+                <h2 class="text-center mb-4">电力市场仿真平台</h2>
+                <form @submit.prevent="login">
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-control" v-model="loginForm.username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">密码</label>
+                        <input type="password" class="form-control" v-model="loginForm.password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">角色</label>
+                        <select class="form-select" v-model="loginForm.role">
+                            <option value="student">学生</option>
+                            <option value="teacher">教师</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">登录</button>
+                    <div class="text-center mt-3">
+                        <a href="#" @click="showRegister = true">注册新用户</a>
+                    </div>
+                </form>
+                
+                <!-- 注册表单 -->
+                <div v-if="showRegister" class="mt-4 pt-3 border-top">
+                    <h5>注册新用户</h5>
+                    <form @submit.prevent="register">
+                        <div class="mb-3">
+                            <label class="form-label">用户名</label>
+                            <input type="text" class="form-control" v-model="registerForm.username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">密码</label>
+                            <input type="password" class="form-control" v-model="registerForm.password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">姓名</label>
+                            <input type="text" class="form-control" v-model="registerForm.full_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">角色</label>
+                            <select class="form-select" v-model="registerForm.role">
+                                <option value="student">学生</option>
+                                <option value="teacher">教师</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">注册</button>
+                        <button type="button" class="btn btn-link w-100" @click="showRegister = false">返回登录</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主界面 -->
+        <div v-else class="main-container">
+            <div class="container-fluid">
+                <div class="row">
+                    <!-- 侧边栏 -->
+                    <div class="col-md-2 sidebar">
+                        <div class="p-3">
+                            <h5>电力市场仿真</h5>
+                            <p class="small">欢迎, {{ currentUser.full_name }}</p>
+                        </div>
+                        <nav class="nav flex-column">
+                            <a class="nav-link" :class="{active: currentView === 'dashboard'}" @click="currentView = 'dashboard'">
+                                📊 仪表板
+                            </a>
+                            <a class="nav-link" :class="{active: currentView === 'scenarios'}" @click="currentView = 'scenarios'">
+                                📋 实验场景
+                            </a>
+                            <a class="nav-link" :class="{active: currentView === 'bidding'}" @click="currentView = 'bidding'">
+                                💰 竞价提交
+                            </a>
+                            <a class="nav-link" :class="{active: currentView === 'results'}" @click="currentView = 'results'">
+                                📈 结果分析
+                            </a>
+                            <a v-if="currentUser.role === 'teacher'" class="nav-link" :class="{active: currentView === 'admin'}" @click="currentView = 'admin'">
+                                ⚙️ 管理面板
+                            </a>
+                            <a class="nav-link" @click="logout">
+                                🚪 退出登录
+                            </a>
+                        </nav>
+                    </div>
+
+                    <!-- 主内容区 -->
+                    <div class="col-md-10 p-4">
+                        <!-- 仪表板 -->
+                        <div v-if="currentView === 'dashboard'">
+                            <h2>仪表板</h2>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="result-card text-center">
+                                        <h4>{{ scenarios.length }}</h4>
+                                        <p>可用场景</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="result-card text-center">
+                                        <h4>{{ myBids.length }}</h4>
+                                        <p>我的竞价</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="result-card text-center">
+                                        <h4>{{ completedScenarios.length }}</h4>
+                                        <p>已完成</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="result-card text-center">
+                                        <h4>{{ totalProfit.toFixed(2) }}</h4>
+                                        <p>总收益</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 实验场景 -->
+                        <div v-if="currentView === 'scenarios'">
+                            <h2>实验场景</h2>
+                            <div class="row">
+                                <div v-for="scenario in scenarios" :key="scenario.scenario_id" class="col-md-6 mb-3">
+                                    <div class="result-card">
+                                        <h5>{{ scenario.scenario_id }}</h5>
+                                        <p><strong>需求量:</strong> {{ scenario.demand }} MW</p>
+                                        <p><strong>参与者:</strong> {{ scenario.participants.join(', ') }}</p>
+                                        <p><strong>可用机制:</strong></p>
+                                        <div class="mb-3">
+                                            <span v-for="mechanism in scenario.enabled_mechanisms" 
+                                                  :key="mechanism" 
+                                                  class="badge bg-primary me-1">
+                                                {{ getMechanismName(mechanism) }}
+                                            </span>
+                                        </div>
+                                        <button class="btn btn-primary" @click="selectScenario(scenario)">
+                                            开始实验
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 竞价提交 -->
+                        <div v-if="currentView === 'bidding'">
+                            <h2>竞价提交</h2>
+                            <div v-if="selectedScenario" class="bid-form">
+                                <h4>场景: {{ selectedScenario.scenario_id }}</h4>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">报价 (元/MWh)</label>
+                                            <input type="number" step="0.01" class="form-control" v-model="bidForm.offer">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">成本 (元/MWh)</label>
+                                            <input type="number" step="0.01" class="form-control" v-model="bidForm.cost">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">固定成本 (元)</label>
+                                            <input type="number" step="0.01" class="form-control" v-model="bidForm.fixed_cost">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">市场机制</label>
+                                            <select class="form-select" v-model="selectedMechanism">
+                                                <option v-for="mechanism in selectedScenario.enabled_mechanisms" 
+                                                        :key="mechanism" :value="mechanism">
+                                                    {{ getMechanismName(mechanism) }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-success" @click="submitBid">提交竞价</button>
+                                <button class="btn btn-secondary ms-2" @click="calculateResult">查看结果</button>
+                            </div>
+                            <div v-else class="text-center">
+                                <p>请先选择一个实验场景</p>
+                            </div>
+                        </div>
+
+                        <!-- 结果分析 -->
+                        <div v-if="currentView === 'results'">
+                            <h2>结果分析</h2>
+                            <div v-if="simulationResult" class="chart-container">
+                                <h4>出清结果</h4>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div id="priceChart" style="height: 300px;"></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div id="profitChart" style="height: 300px;"></div>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <h5>详细结果</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>参与者</th>
+                                                    <th>状态</th>
+                                                    <th>收益 (元)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(dispatched, student) in simulationResult.dispatched" :key="student">
+                                                    <td>{{ student }}</td>
+                                                    <td>
+                                                        <span :class="dispatched ? 'status-badge status-success' : 'status-badge status-danger'">
+                                                            {{ dispatched ? '中标' : '未中标' }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ simulationResult.profits[student] }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="alert alert-info">
+                                        <strong>出清价格:</strong> {{ simulationResult.clearing_price }} 元/MWh
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="text-center">
+                                <p>暂无结果数据</p>
+                            </div>
+                        </div>
+
+                        <!-- 管理面板 -->
+                        <div v-if="currentView === 'admin' && currentUser.role === 'teacher'">
+                            <h2>管理面板</h2>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="bid-form">
+                                        <h4>创建新场景</h4>
+                                        <div class="mb-3">
+                                            <label class="form-label">场景ID</label>
+                                            <input type="text" class="form-control" v-model="newScenario.scenario_id">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">需求量 (MW)</label>
+                                            <input type="number" class="form-control" v-model="newScenario.demand">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">参与者 (用逗号分隔)</label>
+                                            <input type="text" class="form-control" v-model="newScenario.participants">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">启用机制</label>
+                                            <div v-for="mechanism in availableMechanisms" :key="mechanism.value">
+                                                <input type="checkbox" :value="mechanism.value" v-model="newScenario.enabled_mechanisms">
+                                                <label>{{ mechanism.name }}</label>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-primary" @click="createScenario">创建场景</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="bid-form">
+                                        <h4>学生进度</h4>
+                                        <div v-for="scenario in scenarios" :key="scenario.scenario_id">
+                                            <h6>{{ scenario.scenario_id }}</h6>
+                                            <div class="progress mb-2">
+                                                <div class="progress-bar" :style="{width: getProgressPercentage(scenario) + '%'}">
+                                                    {{ getProgressPercentage(scenario) }}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    isLoggedIn: false,
+                    currentUser: null,
+                    currentView: 'dashboard',
+                    showRegister: false,
+                    
+                    // 登录表单
+                    loginForm: {
+                        username: '',
+                        password: '',
+                        role: 'student'
+                    },
+                    
+                    // 注册表单
+                    registerForm: {
+                        username: '',
+                        password: '',
+                        full_name: '',
+                        role: 'student'
+                    },
+                    
+                    // 场景数据
+                    scenarios: [],
+                    selectedScenario: null,
+                    selectedMechanism: 'uniform_price',
+                    
+                    // 竞价表单
+                    bidForm: {
+                        offer: 0,
+                        cost: 0,
+                        fixed_cost: 0
+                    },
+                    
+                    // 仿真结果
+                    simulationResult: null,
+                    
+                    // 新场景表单
+                    newScenario: {
+                        scenario_id: '',
+                        demand: 0,
+                        participants: '',
+                        enabled_mechanisms: ['uniform_price']
+                    },
+                    
+                    // 可用机制
+                    availableMechanisms: [
+                        { value: 'uniform_price', name: '统一价格机制' },
+                        { value: 'pay_as_bid', name: '按报价支付机制' },
+                        { value: 'fixed_cost_uniform', name: '固定成本统一价格' },
+                        { value: 'fixed_cost_pay_as_bid', name: '固定成本按报价支付' },
+                        { value: 'zone_limit_uniform', name: '区域限制统一价格' },
+                        { value: 'constrained_on', name: '补偿机制' },
+                        { value: 'risk_adjusted_uniform', name: '风险调整统一价格' },
+                        { value: 'two_stage', name: '二阶段市场' }
+                    ],
+                    
+                    // 我的竞价
+                    myBids: []
+                }
+            },
+            
+            computed: {
+                completedScenarios() {
+                    return this.scenarios.filter(s => this.myBids.some(b => b.scenario_id === s.scenario_id));
+                },
+                
+                totalProfit() {
+                    return this.myBids.reduce((sum, bid) => sum + (bid.profit || 0), 0);
+                }
+            },
+            
+            mounted() {
+                // 检查是否已登录
+                const token = localStorage.getItem('token');
+                if (token) {
+                    this.isLoggedIn = true;
+                    this.loadUserData();
+                    this.loadScenarios();
+                }
+                
+                // 设置axios默认配置
+                axios.defaults.baseURL = 'http://127.0.0.1:8000';
+            },
+            
+            methods: {
+                async login() {
+                    try {
+                        const response = await axios.post('/api/auth/login', this.loginForm);
+                        localStorage.setItem('token', response.data.access_token);
+                        localStorage.setItem('userRole', response.data.role);
+                        this.isLoggedIn = true;
+                        this.loadUserData();
+                        this.loadScenarios();
+                        this.currentView = 'dashboard';
+                    } catch (error) {
+                        alert('登录失败: ' + error.response?.data?.detail || '未知错误');
+                    }
+                },
+                
+                async register() {
+                    try {
+                        const response = await axios.post('/api/auth/register', {
+                            username: this.registerForm.username,
+                            password: this.registerForm.password,
+                            full_name: this.registerForm.full_name,
+                            role: this.registerForm.role
+                        });
+                        alert('注册成功！请登录');
+                        this.showRegister = false;
+                    } catch (error) {
+                        alert('注册失败: ' + error.response?.data?.detail || '未知错误');
+                    }
+                },
+                
+                logout() {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('userRole');
+                    this.isLoggedIn = false;
+                    this.currentUser = null;
+                },
+                
+                async loadUserData() {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const response = await axios.get('/api/users/me', {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        this.currentUser = response.data;
+                    } catch (error) {
+                        console.error('加载用户数据失败:', error);
+                    }
+                },
+                
+                async loadScenarios() {
+                    try {
+                        // 这里应该调用API获取场景列表
+                        // 暂时使用模拟数据
+                        this.scenarios = [
+                            {
+                                scenario_id: 'lesson01',
+                                demand: 3,
+                                participants: ['alice', 'bob', 'charlie', 'dave'],
+                                enabled_mechanisms: ['uniform_price', 'pay_as_bid']
+                            }
+                        ];
+                    } catch (error) {
+                        console.error('加载场景失败:', error);
+                    }
+                },
+                
+                selectScenario(scenario) {
+                    this.selectedScenario = scenario;
+                    this.selectedMechanism = scenario.enabled_mechanisms[0];
+                    this.currentView = 'bidding';
+                },
+                
+                async submitBid() {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const response = await axios.post('/simulation/bid', {
+                            scenario_id: this.selectedScenario.scenario_id,
+                            student_id: this.currentUser.username,
+                            bid: this.bidForm
+                        }, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        
+                        alert('竞价提交成功！');
+                        this.calculateResult();
+                    } catch (error) {
+                        alert('竞价提交失败: ' + error.response?.data?.detail || '未知错误');
+                    }
+                },
+                
+                async calculateResult() {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const response = await axios.get(`/simulation/result/${this.selectedScenario.scenario_id}`, {
+                            params: { type: this.selectedMechanism },
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        
+                        this.simulationResult = response.data;
+                        this.currentView = 'results';
+                        this.$nextTick(() => {
+                            this.renderCharts();
+                        });
+                    } catch (error) {
+                        alert('获取结果失败: ' + error.response?.data?.detail || '未知错误');
+                    }
+                },
+                
+                renderCharts() {
+                    // 价格图表
+                    const priceChart = echarts.init(document.getElementById('priceChart'));
+                    const priceOption = {
+                        title: { text: '出清价格分析' },
+                        tooltip: {},
+                        xAxis: { type: 'category', data: ['出清价格'] },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: '价格',
+                            type: 'bar',
+                            data: [this.simulationResult.clearing_price]
+                        }]
+                    };
+                    priceChart.setOption(priceOption);
+                    
+                    // 收益图表
+                    const profitChart = echarts.init(document.getElementById('profitChart'));
+                    const profitData = Object.entries(this.simulationResult.profits).map(([name, profit]) => ({
+                        name,
+                        value: profit
+                    }));
+                    const profitOption = {
+                        title: { text: '参与者收益' },
+                        tooltip: {},
+                        series: [{
+                            name: '收益',
+                            type: 'pie',
+                            data: profitData
+                        }]
+                    };
+                    profitChart.setOption(profitOption);
+                },
+                
+                getMechanismName(mechanism) {
+                    const found = this.availableMechanisms.find(m => m.value === mechanism);
+                    return found ? found.name : mechanism;
+                },
+                
+                async createScenario() {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const scenarioData = {
+                            scenario_id: this.newScenario.scenario_id,
+                            demand: parseInt(this.newScenario.demand),
+                            participants: this.newScenario.participants.split(',').map(p => p.trim()),
+                            enabled_mechanisms: this.newScenario.enabled_mechanisms
+                        };
+                        
+                        const response = await axios.post('/admin/scenario/create', scenarioData, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        
+                        alert('场景创建成功！');
+                        this.loadScenarios();
+                        this.newScenario = {
+                            scenario_id: '',
+                            demand: 0,
+                            participants: '',
+                            enabled_mechanisms: ['uniform_price']
+                        };
+                    } catch (error) {
+                        alert('创建场景失败: ' + error.response?.data?.detail || '未知错误');
+                    }
+                },
+                
+                getProgressPercentage(scenario) {
+                    // 计算学生提交进度
+                    const totalParticipants = scenario.participants.length;
+                    const submittedBids = this.myBids.filter(b => b.scenario_id === scenario.scenario_id).length;
+                    return Math.round((submittedBids / totalParticipants) * 100);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html> 
