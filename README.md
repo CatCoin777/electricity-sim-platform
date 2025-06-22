@@ -20,6 +20,7 @@
 - **班级管理系统** - 教师创建班级，分配实验
 - **成绩导出功能** - 支持JSON和CSV格式
 - **实时进度监控** - 教师查看学生提交进度
+- **CORS支持** - 解决跨域问题，支持完整的前后端分离
 
 ## 📁 项目结构
 
@@ -27,6 +28,8 @@
 electricity-sim-platform/
 ├── main.py                 # FastAPI主应用
 ├── security.py            # JWT认证
+├── start.py               # 一键启动脚本
+├── serve_frontend.py      # 前端服务器
 ├── frontend/              # 前端界面
 │   └── index.html         # Vue.js单页应用
 ├── routers/               # API路由
@@ -66,6 +69,7 @@ electricity-sim-platform/
 - **FastAPI** - 现代Python Web框架
 - **Pydantic** - 数据验证和序列化
 - **JWT** - 用户认证
+- **CORS** - 跨域资源共享支持
 - **JSON文件存储** - 轻量级数据存储
 
 ### 前端
@@ -76,21 +80,27 @@ electricity-sim-platform/
 
 ## 🚀 快速开始
 
-### 1. 安装依赖
+### 方法1：一键启动（推荐）
 ```bash
-pip install fastapi uvicorn python-jose[cryptography] python-multipart
+python start.py
 ```
 
-### 2. 启动后端服务
+### 方法2：分步启动
 ```bash
+# 1. 安装依赖
+pip install -r requirements.txt
+
+# 2. 启动后端服务
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# 3. 新开终端，启动前端服务
+python serve_frontend.py
 ```
 
-### 3. 访问前端界面
-打开浏览器访问 `frontend/index.html`
-
-### 4. 访问API文档
-访问 `http://localhost:8000/docs` 查看Swagger API文档
+### 3. 访问应用
+- **前端界面**：`http://localhost:3000`
+- **后端API**：`http://localhost:8000`
+- **API文档**：`http://localhost:8000/docs`
 
 ## 👥 用户角色
 
@@ -245,6 +255,7 @@ curl -X GET "http://localhost:8000/simulation/result/lesson01?type=uniform_price
 - 角色权限控制
 - 输入数据验证
 - 错误处理机制
+- CORS安全配置
 
 ## 📊 数据存储
 
@@ -256,7 +267,12 @@ curl -X GET "http://localhost:8000/simulation/result/lesson01?type=uniform_price
 
 ### 开发环境
 ```bash
+# 一键启动
+python start.py
+
+# 或分步启动
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python serve_frontend.py
 ```
 
 ### 生产环境
@@ -265,9 +281,38 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 pip install gunicorn
 gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 
-# 或使用Docker
-docker build -t electricity-sim .
-docker run -p 8000:8000 electricity-sim
+# 前端使用Nginx
+# 配置Nginx代理到前端静态文件
+```
+
+### Docker部署
+```dockerfile
+# Dockerfile示例
+FROM python:3.9
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+## 🔧 故障排除
+
+### CORS问题
+- 确保后端已添加CORS中间件
+- 检查前端请求的URL是否正确
+- 验证浏览器控制台错误信息
+
+### 端口冲突
+- 后端默认端口：8000
+- 前端默认端口：3000
+- 如遇冲突，可修改端口配置
+
+### 依赖问题
+```bash
+# 重新安装依赖
+pip install -r requirements.txt --force-reinstall
 ```
 
 ## 🤝 贡献指南
