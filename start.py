@@ -6,6 +6,8 @@
 import sys
 import subprocess
 import os
+import threading
+import time
 
 def check_python_version():
     """检查Python版本"""
@@ -74,19 +76,16 @@ def create_sample_data():
             json.dump(sample_scenarios, f, ensure_ascii=False, indent=2)
         print("📄 创建示例场景数据")
 
-def start_server():
-    """启动服务器"""
-    print("🚀 启动电力市场仿真平台...")
-    print("📍 后端服务地址：http://localhost:8000")
-    print("📍 API文档地址：http://localhost:8000/docs")
-    print("📍 前端界面：打开 frontend/index.html")
-    print("⏹️  按 Ctrl+C 停止服务")
-    print("-" * 50)
-    
-    try:
-        subprocess.run([sys.executable, "-m", "uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"])
-    except KeyboardInterrupt:
-        print("\n👋 服务已停止")
+def start_backend_server():
+    """启动后端服务器"""
+    print("🚀 启动后端服务器...")
+    subprocess.run([sys.executable, "-m", "uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"])
+
+def start_frontend_server():
+    """启动前端服务器"""
+    print("🌐 启动前端服务器...")
+    time.sleep(2)  # 等待后端启动
+    subprocess.run([sys.executable, "serve_frontend.py"])
 
 def main():
     """主函数"""
@@ -109,8 +108,18 @@ def main():
     # 创建示例数据
     create_sample_data()
     
-    # 启动服务器
-    start_server()
+    print("🚀 启动电力市场仿真平台...")
+    print("📍 后端服务地址：http://localhost:8000")
+    print("📍 API文档地址：http://localhost:8000/docs")
+    print("📍 前端界面：http://localhost:3000")
+    print("⏹️  按 Ctrl+C 停止所有服务")
+    print("-" * 50)
+    
+    try:
+        # 启动后端服务器（主线程）
+        start_backend_server()
+    except KeyboardInterrupt:
+        print("\n👋 服务已停止")
 
 if __name__ == "__main__":
     main() 
