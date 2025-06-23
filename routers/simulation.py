@@ -1,6 +1,6 @@
 # routers/simulation.py
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Body
 from fastapi.security import OAuth2PasswordBearer
 from schemas.simulation import DispatchResult, BidSubmitRequest
 from mock_data.file_storage import get_scenario, get_bids, save_bid
@@ -14,9 +14,9 @@ from services.market_clear.pay_as_bid import clear_market_pay_as_bid
 from services.market_clear.zone_limit_uniform import clear_market_zone_uniform
 from security import decode_access_token
 from routers.classes import get_class_info, get_experiment_assignments
-from typing import List
+from typing import List, Dict, Any
 
-router = APIRouter(prefix="/simulation", tags=["Simulation"])
+router = APIRouter(prefix="/api/simulation", tags=["Simulation"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 

@@ -9,8 +9,8 @@ def clear_market_risk_adjusted_uniform(scenario: Dict, bid_data: Dict[str, dict]
 
     # 使用期望报价 = offer / probability
     def expected_offer(bid):
-        prob = bid.get("probability", 1.0)
-        return bid["offer"] / prob if prob > 0 else float("inf")
+        prob = bid.get("probability", 1)
+        return bid.get('offer', bid.get('price')) / prob if prob > 0 else float("inf")
 
     sorted_bids = sorted(bid_data.items(), key=lambda x: expected_offer(x[1]))
     winners = sorted_bids[:demand]
@@ -18,7 +18,7 @@ def clear_market_risk_adjusted_uniform(scenario: Dict, bid_data: Dict[str, dict]
     if len(winners) < demand:
         raise ValueError("Not enough bids to satisfy demand")
 
-    clearing_price = winners[-1][1]["offer"]
+    clearing_price = winners[-1][1].get('offer', winners[-1][1].get('price'))
     dispatched = {}
     profits = {}
 

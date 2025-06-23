@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from schemas.simulation import ScenarioCreateRequest
 from mock_data.file_storage import get_scenario, save_scenario
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
+router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 
 @router.post("/scenario/create")

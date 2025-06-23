@@ -1,13 +1,14 @@
 from schemas.simulation import DispatchResult
+from fastapi import HTTPException
 
 
 def clear_market_pay_as_bid(scenario, bid_data):
     demand = scenario["demand"]
-    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1]["offer"])
+    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1].get('offer', x[1].get('price')))
     winners = sorted_bids[:demand]
 
-    if len(winners) < demand:
-        raise ValueError("Not enough bids to satisfy demand")
+    if len(sorted_bids) < demand:
+        raise HTTPException(status_code=400, detail=f"Not enough bids to satisfy demand. Demand={demand}, bids={len(sorted_bids)}")
 
     dispatched = {}
     profits = {}
@@ -16,7 +17,7 @@ def clear_market_pay_as_bid(scenario, bid_data):
     for student, bid in bid_data.items():
         if student in dict(winners):
             dispatched[student] = True
-            price = bid["offer"]  # 按自己报价成交
+            price = bid.get('offer', bid.get('price'))  # 按自己报价成交
             profits[student] = round(price - bid["cost"], 2)
         else:
             dispatched[student] = False

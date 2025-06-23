@@ -10,7 +10,7 @@ def clear_market_zone_uniform(scenario: Dict, bid_data: Dict[str, dict]) -> Disp
     zone_limits = scenario.get("zone_limits", {})  # e.g., {"West": 2, "East": 2}
 
     # 按报价升序排列
-    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1]["offer"])
+    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1].get('offer', x[1].get('price')))
     winners = []
     zone_count = defaultdict(int)
     total_dispatched = 0
@@ -32,7 +32,7 @@ def clear_market_zone_uniform(scenario: Dict, bid_data: Dict[str, dict]) -> Disp
     if total_dispatched < demand:
         raise ValueError("Unable to fulfill demand under zone constraints")
 
-    clearing_price = winners[-1][1]["offer"]
+    clearing_price = winners[-1][1].get('offer', winners[-1][1].get('price'))
     dispatched = {}
     profits = {}
 

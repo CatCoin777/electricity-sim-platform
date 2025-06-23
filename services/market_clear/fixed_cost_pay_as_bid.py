@@ -8,7 +8,7 @@ def clear_market_fixed_pay_as_bid(scenario: Dict, bid_data: Dict[str, dict]) -> 
     demand = scenario["demand"]
 
     # Step 1: 按报价从低到高排序
-    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1]["offer"])
+    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1].get('offer', x[1].get('price')))
     winners = sorted_bids[:demand]
 
     if len(winners) < demand:
@@ -20,7 +20,7 @@ def clear_market_fixed_pay_as_bid(scenario: Dict, bid_data: Dict[str, dict]) -> 
     clearing_price = 0  # 统一价为0（或空），表示是 pay-as-bid 模式
 
     for student, bid in bid_data.items():
-        offer = bid["offer"]
+        offer = bid.get('offer', bid.get('price'))
         cost = bid.get("cost", 0)
         fixed_cost = bid.get("fixed_cost", 0)
 

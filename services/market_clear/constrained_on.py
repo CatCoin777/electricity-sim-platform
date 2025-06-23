@@ -10,9 +10,9 @@ def clear_market_constrained_on(scenario: Dict, bid_data: Dict[str, dict]) -> Di
     must_run = scenario.get("must_run", [])  # 强制运行者 ID 列表
 
     # Step 1: 正常按报价排序调度
-    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1]["offer"])
+    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1].get('offer', x[1].get('price')))
     winners = sorted_bids[:demand]
-    clearing_price = winners[-1][1]["offer"]
+    clearing_price = winners[-1][1].get('offer', winners[-1][1].get('price'))
 
     dispatched = {}
     profits = {}

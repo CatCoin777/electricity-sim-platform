@@ -1,0 +1,36 @@
+{
+  "scenario_20250623_191451": {
+    "teacher1": {
+      "scenario_id": "scenario_20250623_191451",
+      "price": 1,
+      "quantity": 2,
+      "bid_type": "supply",
+      "participant_id": "teacher1",
+      "participant_name": "Professor",
+      "created_at": "2025-06-23T19:15:08.608305",
+      "status": "pending"
+    }
+  },
+  "scenario_20250623_191818": {
+    "teacher1": {
+      "scenario_id": "scenario_20250623_191818",
+      "price": 12,
+      "quantity": 22,
+      "bid_type": "supply",
+      "participant_id": "teacher1",
+      "participant_name": "Professor",
+      "created_at": "2025-06-23T19:18:38.068283",
+      "status": "pending"
+    },
+    "student1": {
+      "scenario_id": "scenario_20250623_191818",
+      "price": 122,
+      "quantity": 233,
+      "bid_type": "demand",
+      "participant_id": "student1",
+      "participant_name": "Bob",
+      "created_at": "2025-06-23T19:19:18.643819",
+      "status": "pending"
+    }
+  }
+}
