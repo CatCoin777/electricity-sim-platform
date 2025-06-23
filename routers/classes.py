@@ -22,10 +22,10 @@ async def create_class(
     description: str = Body(None),
     token: str = Depends(oauth2_scheme)
 ):
-    """创建班级（教师专用）"""
+    """Create a new class (Teacher only)"""
     payload = decode_access_token(token)
     if not payload or payload.get("role") != "teacher":
-        raise HTTPException(status_code=403, detail="只有教师可以创建班级")
+        raise HTTPException(status_code=403, detail="Only teachers can create classes")
     
     teacher_id = payload.get("sub")
     class_id = f"class_{uuid.uuid4().hex[:8]}"
@@ -39,11 +39,11 @@ async def create_class(
         description=description
     )
     
-    # 保存班级信息
+    # Save class information
     save_class_info(class_info.dict())
     
     return {
-        "message": "班级创建成功",
+        "message": "Class created successfully",
         "class_id": class_id,
         "class_info": class_info.dict()
     }
@@ -51,10 +51,10 @@ async def create_class(
 
 @router.get("/my-classes")
 async def get_my_classes(token: str = Depends(oauth2_scheme)):
-    """获取我的班级"""
+    """Get classes for current user"""
     payload = decode_access_token(token)
     if not payload:
-        raise HTTPException(status_code=401, detail="无效令牌")
+        raise HTTPException(status_code=401, detail="Invalid token")
     
     user_id = payload.get("sub")
     user_role = payload.get("role")
@@ -63,10 +63,10 @@ async def get_my_classes(token: str = Depends(oauth2_scheme)):
     my_classes = []
     
     if user_role == "teacher":
-        # 教师：获取自己创建的班级
+        # Teacher: get classes they created
         my_classes = [cls for cls in all_classes if cls["teacher_id"] == user_id]
     else:
-        # 学生：获取自己所在的班级
+        # Student: get classes they belong to
         my_classes = [cls for cls in all_classes if user_id in cls["students"]]
     
     return my_classes
@@ -78,41 +78,121 @@ async def add_students_to_class(
     student_ids: List[str] = Body(...),
     token: str = Depends(oauth2_scheme)
 ):
-    """添加学生到班级（教师专用）"""
+    """Add students to class (Teacher only)"""
     payload = decode_access_token(token)
     if not payload or payload.get("role") != "teacher":
-        raise HTTPException(status_code=403, detail="只有教师可以添加学生")
+        raise HTTPException(status_code=403, detail="Only teachers can add students")
     
-    # 获取班级信息
+    # Get class information
     class_info = get_class_info(class_id)
     if not class_info:
-        raise HTTPException(status_code=404, detail="班级不存在")
+        raise HTTPException(status_code=404, detail="Class not found")
     
-    # 检查权限
+    # Check permissions
     if class_info["teacher_id"] != payload.get("sub"):
-        raise HTTPException(status_code=403, detail="您不是该班级的教师")
+        raise HTTPException(status_code=403, detail="You are not the teacher of this class")
     
-    # 验证学生是否存在
+    # Validate students exist
     valid_students = []
     for student_id in student_ids:
         if student_id in mock_users and mock_users[student_id]["role"] == "student":
             valid_students.append(student_id)
         else:
-            print(f"警告：学生 {student_id} 不存在或不是学生角色")
+            print(f"Warning: Student {student_id} does not exist or is not a student")
     
-    # 添加学生（避免重复）
+    # Add students (avoid duplicates)
     existing_students = set(class_info["students"])
     new_students = [s for s in valid_students if s not in existing_students]
     class_info["students"].extend(new_students)
     
-    # 保存更新
+    # Save updates
     save_class_info(class_info)
     
     return {
-        "message": f"成功添加 {len(new_students)} 名学生",
+        "message": f"Successfully added {len(new_students)} students",
         "added_students": new_students,
         "total_students": len(class_info["students"])
     }
+
+
+@router.delete("/{class_id}/remove-students")
+async def remove_students_from_class(
+    class_id: str,
+    student_ids: List[str] = Body(...),
+    token: str = Depends(oauth2_scheme)
+):
+    """Remove students from class (Teacher only)"""
+    payload = decode_access_token(token)
+    if not payload or payload.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Only teachers can remove students")
+    
+    # Get class information
+    class_info = get_class_info(class_id)
+    if not class_info:
+        raise HTTPException(status_code=404, detail="Class not found")
+    
+    # Check permissions
+    if class_info["teacher_id"] != payload.get("sub"):
+        raise HTTPException(status_code=403, detail="You are not the teacher of this class")
+    
+    # Remove students
+    removed_students = []
+    for student_id in student_ids:
+        if student_id in class_info["students"]:
+            class_info["students"].remove(student_id)
+            removed_students.append(student_id)
+    
+    # Save updates
+    save_class_info(class_info)
+    
+    return {
+        "message": f"Successfully removed {len(removed_students)} students",
+        "removed_students": removed_students,
+        "total_students": len(class_info["students"])
+    }
+
+
+@router.get("/all-students")
+async def get_all_students(token: str = Depends(oauth2_scheme)):
+    """Get all students (Teacher only)"""
+    payload = decode_access_token(token)
+    if not payload or payload.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Only teachers can view all students")
+    
+    students = []
+    for username, user in mock_users.items():
+        if user["role"] == "student":
+            students.append({
+                "username": username,
+                "full_name": user["full_name"],
+                "role": user["role"]
+            })
+    
+    return students
+
+
+@router.get("/student-classes/{student_id}")
+async def get_student_classes(
+    student_id: str,
+    token: str = Depends(oauth2_scheme)
+):
+    """Get classes that a student belongs to (Teacher only)"""
+    payload = decode_access_token(token)
+    if not payload or payload.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Only teachers can view student classes")
+    
+    all_classes = load_all_classes()
+    student_classes = []
+    
+    for class_info in all_classes.values():
+        if student_id in class_info.get("students", []):
+            student_classes.append({
+                "class_id": class_info["class_id"],
+                "class_name": class_info["class_name"],
+                "teacher_id": class_info["teacher_id"]
+            })
+    
+    return student_classes
 
 
 @router.post("/{class_id}/assign-experiment")
@@ -124,23 +204,23 @@ async def assign_experiment(
     description: str = Body(None),
     token: str = Depends(oauth2_scheme)
 ):
-    """分配实验任务（教师专用）"""
+    """Assign experiment to class (Teacher only)"""
     payload = decode_access_token(token)
     if not payload or payload.get("role") != "teacher":
-        raise HTTPException(status_code=403, detail="只有教师可以分配实验")
+        raise HTTPException(status_code=403, detail="Only teachers can assign experiments")
     
-    # 检查班级权限
+    # Check class permissions
     class_info = get_class_info(class_id)
     if not class_info or class_info["teacher_id"] != payload.get("sub"):
-        raise HTTPException(status_code=403, detail="您不是该班级的教师")
+        raise HTTPException(status_code=403, detail="You are not the teacher of this class")
     
-    # 检查场景是否存在
+    # Check if scenario exists
     from mock_data.file_storage import get_scenario
     scenario = get_scenario(scenario_id)
     if not scenario:
-        raise HTTPException(status_code=404, detail="场景不存在")
+        raise HTTPException(status_code=404, detail="Scenario not found")
     
-    # 创建实验任务
+    # Create experiment assignment
     assignment_id = f"assignment_{uuid.uuid4().hex[:8]}"
     start_time = datetime.now()
     end_time = start_time + timedelta(hours=duration_hours)
@@ -156,11 +236,11 @@ async def assign_experiment(
         description=description
     )
     
-    # 保存任务
+    # Save assignment
     save_experiment_assignment(assignment.dict())
     
     return {
-        "message": "实验任务分配成功",
+        "message": "Experiment assigned successfully",
         "assignment_id": assignment_id,
         "assignment": assignment.dict()
     }
@@ -172,32 +252,32 @@ async def get_class_progress(
     assignment_id: str = None,
     token: str = Depends(oauth2_scheme)
 ):
-    """获取班级进度（教师专用）"""
+    """Get class progress (Teacher only)"""
     payload = decode_access_token(token)
     if not payload or payload.get("role") != "teacher":
-        raise HTTPException(status_code=403, detail="只有教师可以查看班级进度")
+        raise HTTPException(status_code=403, detail="Only teachers can view class progress")
     
-    # 检查班级权限
+    # Check class permissions
     class_info = get_class_info(class_id)
     if not class_info or class_info["teacher_id"] != payload.get("sub"):
-        raise HTTPException(status_code=403, detail="您不是该班级的教师")
+        raise HTTPException(status_code=403, detail="You are not the teacher of this class")
     
-    # 获取实验任务
+    # Get experiment assignments
     assignments = get_experiment_assignments(class_id)
     if assignment_id:
         assignments = [a for a in assignments if a["assignment_id"] == assignment_id]
     
-    # 计算进度
+    # Calculate progress
     progress_data = []
     for assignment in assignments:
         scenario_id = assignment["scenario_id"]
         students = class_info["students"]
         
-        # 获取竞价数据
+        # Get bid data
         from mock_data.file_storage import get_bids
         bid_data = get_bids(scenario_id)
         
-        # 计算每个学生的进度
+        # Calculate progress for each student
         for student_id in students:
             submitted = student_id in bid_data
             progress = StudentProgress(
@@ -223,18 +303,18 @@ async def get_class_progress(
 
 @router.get("/my-assignments")
 async def get_my_assignments(token: str = Depends(oauth2_scheme)):
-    """获取我的实验任务（学生专用）"""
+    """Get experiment assignments for current user (Student only)"""
     payload = decode_access_token(token)
     if not payload or payload.get("role") != "student":
-        raise HTTPException(status_code=403, detail="只有学生可以查看实验任务")
+        raise HTTPException(status_code=403, detail="Only students can view assignments")
     
     student_id = payload.get("sub")
     
-    # 获取学生所在的班级
+    # Get classes the student belongs to
     all_classes = load_all_classes()
     my_classes = [cls for cls in all_classes if student_id in cls["students"]]
     
-    # 获取所有实验任务
+    # Get all experiment assignments
     all_assignments = []
     for class_info in my_classes:
         assignments = get_experiment_assignments(class_info["class_id"])
@@ -245,9 +325,9 @@ async def get_my_assignments(token: str = Depends(oauth2_scheme)):
     return all_assignments
 
 
-# 辅助函数
+# Helper functions
 def save_class_info(class_info: Dict):
-    """保存班级信息"""
+    """Save class information"""
     filename = "mock_data/classes.json"
     all_classes = load_all_classes()
     all_classes[class_info["class_id"]] = class_info
@@ -257,7 +337,7 @@ def save_class_info(class_info: Dict):
 
 
 def load_all_classes() -> Dict:
-    """加载所有班级信息"""
+    """Load all class information"""
     filename = "mock_data/classes.json"
     try:
         with open(filename, 'r', encoding='utf-8') as f:
@@ -267,13 +347,13 @@ def load_all_classes() -> Dict:
 
 
 def get_class_info(class_id: str) -> Dict:
-    """获取班级信息"""
+    """Get class information"""
     all_classes = load_all_classes()
     return all_classes.get(class_id)
 
 
 def save_experiment_assignment(assignment: Dict):
-    """保存实验任务"""
+    """Save experiment assignment"""
     filename = "mock_data/assignments.json"
     all_assignments = load_all_assignments()
     all_assignments[assignment["assignment_id"]] = assignment
@@ -283,7 +363,7 @@ def save_experiment_assignment(assignment: Dict):
 
 
 def load_all_assignments() -> Dict:
-    """加载所有实验任务"""
+    """Load all experiment assignments"""
     filename = "mock_data/assignments.json"
     try:
         with open(filename, 'r', encoding='utf-8') as f:
@@ -293,13 +373,13 @@ def load_all_assignments() -> Dict:
 
 
 def get_experiment_assignments(class_id: str) -> List[Dict]:
-    """获取班级的实验任务"""
+    """Get experiment assignments for a class"""
     all_assignments = load_all_assignments()
     return [a for a in all_assignments.values() if a["class_id"] == class_id]
 
 
 def calculate_submission_rate(progress_data: List[Dict]) -> float:
-    """计算提交率"""
+    """Calculate submission rate"""
     if not progress_data:
         return 0.0
     

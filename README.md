@@ -1,174 +1,149 @@
-# 电力市场仿真平台
+# 电力市场仿真平台（Electricity Market Simulation Platform）
 
-一个基于FastAPI和Vue.js的电力市场交易机制教学仿真平台，支持多种市场出清算法和实验评估功能。
+一个基于 FastAPI + Vue.js 的电力市场教学仿真平台，支持多种市场出清机制、实验评估、班级管理、可视化分析，适合国际化教学与实验。
+
+---
 
 ## 🎯 项目特色
+- 多种市场出清算法（统一价、pay-as-bid、固定成本、分区、补偿、风险、二阶段市场等）
+- 前端可视化（Vue3 + ECharts）
+- 实验评估系统（自动评分、排名、分布分析）
+- 班级/用户/权限管理
+- 成绩导出、实验报告生成
+- 完善的 API 文档与开发者支持
+- 支持 CORS，前后端分离
 
-### ✅ 已完成的算法模块
-- **A1** 统一价市场（Uniform Pricing）✅
-- **A2** Pay-as-bid 出清机制 ✅
-- **A3** 固定成本 + 统一价 ✅
-- **A4** 固定成本 + Pay-as-bid ✅
-- **A5** 分区限制（区域出清 + 网络约束）✅
-- **A6** 补偿机制（Constrained-on Payments）✅
-- **A7** 风险模型（不确定性处理）✅
-- **A8** 二阶段市场（日前 + 实时）✅
+---
 
-### 🚀 新增功能
-- **前端可视化界面** - Vue.js + ECharts
-- **实验评估系统** - 自动评分和排名
-- **班级管理系统** - 教师创建班级，分配实验
-- **成绩导出功能** - 支持JSON和CSV格式
-- **实时进度监控** - 教师查看学生提交进度
-- **CORS支持** - 解决跨域问题，支持完整的前后端分离
-
-## 📁 项目结构
-
+## 📁 目录结构
 ```
 electricity-sim-platform/
 ├── main.py                 # FastAPI主应用
-├── security.py            # JWT认证
-├── start.py               # 一键启动脚本
-├── serve_frontend.py      # 前端服务器
-├── frontend/              # 前端界面
-│   └── index.html         # Vue.js单页应用
-├── routers/               # API路由
-│   ├── auth.py           # 用户认证
-│   ├── users.py          # 用户管理
-│   ├── admin.py          # 管理员功能
-│   ├── simulation.py     # 仿真计算
-│   ├── evaluation.py     # 评估系统
-│   └── classes.py        # 班级管理
-├── schemas/              # 数据模型
-│   ├── auths.py         # 认证模型
-│   ├── simulation.py    # 仿真模型
-│   ├── evaluation.py    # 评估模型
-│   └── classes.py       # 班级模型
-├── services/            # 业务逻辑
-│   ├── market_clear/    # 市场出清算法
-│   │   ├── uniform_price.py
-│   │   ├── pay_as_bid.py
-│   │   ├── fixed_cost_uniform.py
-│   │   ├── fixed_cost_pay_as_bid.py
-│   │   ├── zone_limit_uniform.py
-│   │   ├── constrained_on.py
-│   │   ├── risk_adjusted_uniform.py
-│   │   └── two_stage_market.py
-│   └── evaluation/      # 评估服务
-│       └── score_calculator.py
-└── mock_data/          # 模拟数据
-    ├── scenarios.json  # 场景配置
-    ├── bids.json       # 竞价数据
-    ├── mock_users.py   # 用户数据
-    └── file_storage.py # 文件存储
+├── security.py             # JWT认证
+├── start.py                # 一键启动脚本
+├── serve_frontend.py       # 前端服务器
+├── frontend/               # 前端界面（index.html）
+├── routers/                # API路由
+│   ├── auth.py             # 用户认证
+│   ├── users.py            # 用户管理
+│   ├── admin.py            # 管理员功能
+│   ├── simulation.py       # 仿真计算
+│   ├── evaluation.py       # 评估系统
+│   └── classes.py          # 班级管理
+├── schemas/                # 数据模型
+│   ├── auths.py
+│   ├── simulation.py
+│   ├── evaluation.py
+│   └── classes.py
+├── services/               # 业务逻辑
+│   ├── market_clear/       # 市场出清算法
+│   └── evaluation/         # 评估服务
+├── mock_data/              # 模拟数据
+│   ├── scenarios.json      # 场景配置
+│   ├── bids.json           # 竞价数据
+│   ├── mock_users.py       # 用户数据
+│   └── file_storage.py     # 文件存储
+├── requirements.txt        # 依赖
+├── README.md               # 项目说明（本文件）
+└── ...
 ```
 
+---
+
 ## 🛠️ 技术栈
+- **后端**：FastAPI、Pydantic、JWT、CORS、JSON 文件存储
+- **前端**：Vue.js 3、ECharts、Bootstrap 5、Axios
 
-### 后端
-- **FastAPI** - 现代Python Web框架
-- **Pydantic** - 数据验证和序列化
-- **JWT** - 用户认证
-- **CORS** - 跨域资源共享支持
-- **JSON文件存储** - 轻量级数据存储
+---
 
-### 前端
-- **Vue.js 3** - 响应式前端框架
-- **ECharts** - 数据可视化图表
-- **Bootstrap 5** - UI组件库
-- **Axios** - HTTP客户端
+## 🚀 快速启动
 
-## 🚀 快速开始
-
-### 方法1：一键启动（推荐）
+### 推荐：一键启动
 ```bash
 python start.py
 ```
+- 自动检查/安装依赖
+- 启动后端（8000端口）
+- 启动前端（3000端口）
+- 生成示例数据
 
-### 方法2：分步启动
-```bash
-# 1. 安装依赖
-pip install -r requirements.txt
+### 手动启动
+1. 安装依赖
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. 启动后端
+   ```bash
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   ```
+3. 启动前端（新开终端）
+   ```bash
+   python serve_frontend.py
+   ```
 
-# 2. 启动后端服务
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+### 访问地址
+- 前端界面：http://localhost:3000
+- 后端API：http://localhost:8000
+- API文档：http://localhost:8000/docs
 
-# 3. 新开终端，启动前端服务
-python serve_frontend.py
-```
+---
 
-### 3. 访问应用
-- **前端界面**：`http://localhost:3000`
-- **后端API**：`http://localhost:8000`
-- **API文档**：`http://localhost:8000/docs`
+## 👤 账号说明与体验流程
 
-## 👥 用户角色
+### 测试账号
+- 教师账号：
+  - 用户名：teacher1
+  - 密码：admin
+  - 角色：teacher
+- 学生账号：
+  - 用户名：student1
+  - 密码：123456
+  - 角色：student
 
-### 教师功能
-- 创建和管理班级
-- 分配实验任务
-- 设置评估标准
-- 查看学生进度
-- 生成实验报告
-- 导出成绩数据
+### 教师操作流程
+1. 登录教师账号
+2. 进入"管理面板"
+3. 创建新场景
+4. 创建班级并添加学生
+5. 分配实验任务
 
-### 学生功能
-- 查看实验任务
-- 提交竞价数据
-- 查看个人成绩
-- 分析实验结果
+### 学生操作流程
+1. 登录学生账号
+2. 查看"实验场景"
+3. 选择场景开始实验
+4. 提交竞价数据
+5. 查看结果分析
 
-## 📊 市场机制说明
+---
 
-### 1. 统一价格机制 (Uniform Pricing)
-- 所有中标者按统一价格结算
-- 价格由边际出清价格决定
-- 适合竞争性市场环境
+## 🏷️ 功能说明
 
-### 2. 按报价支付机制 (Pay-as-bid)
-- 每个中标者按自己的报价结算
-- 鼓励真实报价
-- 减少市场操纵风险
+### 市场机制
+- 统一价格（Uniform Pricing）
+- Pay-as-bid
+- 固定成本机制
+- 区域限制机制
+- 补偿机制
+- 风险调整机制
+- 二阶段市场
 
-### 3. 固定成本机制
-- 考虑发电厂的固定成本
-- 更贴近实际运营情况
-- 支持成本回收
+### 评估系统
+- 价格得分（50%）：基于报价与出清价格的接近程度
+- 利润得分（50%）：基于实际获得的利润
+- 自动计算成绩、班级排名、分布分析、实验报告生成、成绩导出
 
-### 4. 区域限制机制
-- 考虑网络约束
-- 分区出清价格
-- 模拟实际电力系统
+### 班级与用户管理
+- 教师创建/管理班级，分配实验
+- 学生班级变更、个人信息维护、密码修改
+- 进度监控、成绩导出
 
-### 5. 补偿机制
-- 强制运行机组的补偿
-- 系统安全约束
-- 平衡市场效率与安全
+### 前端可视化
+- 实时竞价、结果展示、分布图表
+- 响应式设计，移动端支持
 
-### 6. 风险调整机制
-- 考虑不确定性因素
-- 概率性出清
-- 风险管理
+---
 
-### 7. 二阶段市场
-- 日前市场 + 实时市场
-- 分时优化
-- 更精确的调度
-
-## 📈 评估系统
-
-### 评分标准
-- **价格得分** (50%) - 基于报价与出清价格的接近程度
-- **利润得分** (50%) - 基于实际获得的利润
-
-### 评估功能
-- 自动计算学生成绩
-- 班级排名统计
-- 成绩分布分析
-- 实验报告生成
-- 数据导出功能
-
-## 🔧 API接口
+## 🔗 API接口（部分）
 
 ### 认证相关
 - `POST /api/auth/login` - 用户登录
@@ -193,146 +168,64 @@ python serve_frontend.py
 - `POST /classes/{class_id}/assign-experiment` - 分配实验
 - `GET /classes/{class_id}/progress` - 查看进度
 
-## 📝 使用示例
+---
 
-### 1. 教师创建实验
-```bash
-# 1. 登录教师账户
-curl -X POST "http://localhost:8000/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"username": "teacher1", "password": "admin", "role": "teacher"}'
+## ❓ 常见问题与高级配置
 
-# 2. 创建班级
-curl -X POST "http://localhost:8000/classes/create" \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{"class_name": "电力市场实验班", "description": "2024年春季学期"}'
+### Q: 启动时提示缺少依赖？
+A: 运行 `pip install -r requirements.txt`
 
-# 3. 分配实验任务
-curl -X POST "http://localhost:8000/classes/{class_id}/assign-experiment" \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{"scenario_id": "lesson01", "mechanism_type": "uniform_price", "duration_hours": 24}'
-```
+### Q: 前端无法连接后端？
+A: 确保两个服务都在运行：
+- 后端：http://localhost:8000
+- 前端：http://localhost:3000
 
-### 2. 学生参与实验
-```bash
-# 1. 学生登录
-curl -X POST "http://localhost:8000/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"username": "student1", "password": "123456", "role": "student"}'
+### Q: 登录出现CORS错误？
+A: 用 `http://localhost:3000` 访问前端，不要直接打开HTML文件
 
-# 2. 提交竞价
-curl -X POST "http://localhost:8000/simulation/bid" \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{"scenario_id": "lesson01", "student_id": "student1", "bid": {"offer": 50.0, "cost": 30.0, "fixed_cost": 10.0}}'
+### Q: 如何添加更多学生？
+A: 编辑 `mock_data/mock_users.py` 添加用户信息
 
-# 3. 查看结果
-curl -X GET "http://localhost:8000/simulation/result/lesson01?type=uniform_price" \
-  -H "Authorization: Bearer {token}"
-```
+### Q: 如何创建新场景？
+A: 前端管理面板或编辑 `mock_data/scenarios.json`
 
-## 🎨 前端界面
+### Q: 端口被占用怎么办？
+A: 修改端口配置：
+- 后端：`uvicorn` 命令的 `--port` 参数
+- 前端：`serve_frontend.py` 的 `PORT` 变量
 
-### 主要功能页面
-1. **登录/注册** - 用户身份验证
-2. **仪表板** - 概览统计信息
-3. **实验场景** - 查看可用实验
-4. **竞价提交** - 学生提交竞价
-5. **结果分析** - 图表化结果展示
-6. **管理面板** - 教师管理功能
+### Q: 前端页面空白？
+A: 检查浏览器控制台错误，确认前端服务正常运行，清除浏览器缓存
 
-### 可视化图表
-- 出清价格分析柱状图
-- 参与者收益饼图
-- 成绩分布统计图
-- 提交进度进度条
+### Q: 依赖安装失败？
+A: 升级pip，或用 `pip install -r requirements.txt --force-reinstall`
 
-## 🔒 安全特性
+### Q: 停止服务？
+A: 两个终端分别按 `Ctrl+C` 停止服务
 
-- JWT Token认证
-- 角色权限控制
-- 输入数据验证
-- 错误处理机制
-- CORS安全配置
-
-## 📊 数据存储
-
-- JSON文件存储（开发环境）
-- 支持扩展为数据库存储
-- 数据备份和恢复
-
-## 🚀 部署建议
-
-### 开发环境
-```bash
-# 一键启动
-python start.py
-
-# 或分步启动
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-python serve_frontend.py
-```
-
-### 生产环境
-```bash
-# 使用Gunicorn
-pip install gunicorn
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
-
-# 前端使用Nginx
-# 配置Nginx代理到前端静态文件
-```
-
-### Docker部署
-```dockerfile
-# Dockerfile示例
-FROM python:3.9
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-## 🔧 故障排除
-
-### CORS问题
-- 确保后端已添加CORS中间件
-- 检查前端请求的URL是否正确
-- 验证浏览器控制台错误信息
-
-### 端口冲突
-- 后端默认端口：8000
-- 前端默认端口：3000
-- 如遇冲突，可修改端口配置
-
-### 依赖问题
-```bash
-# 重新安装依赖
-pip install -r requirements.txt --force-reinstall
-```
-
-## 🤝 贡献指南
-
-1. Fork 项目
-2. 创建功能分支
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
-
-## 📄 许可证
-
-MIT License
-
-## 📞 联系方式
-
-如有问题或建议，请通过以下方式联系：
-- 项目Issues
-- 邮箱：[your-email@example.com]
+### 高级配置
+- 修改端口：
+  ```python
+  # serve_frontend.py
+  PORT = 3001
+  # 后端
+  uvicorn main:app --reload --host 0.0.0.0 --port 8001
+  ```
+- 生产部署：
+  ```bash
+  pip install gunicorn
+  gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+  # Nginx 代理前端
+  ```
 
 ---
 
-**电力市场仿真平台** - 让电力市场教学更直观、更有效！ 
+## 📝 其他说明
+- 支持移动端访问，响应式设计
+- CORS 默认开发环境全开放，生产环境请限制来源
+- 所有页面已英文化，适合国际用户
+- 如需自定义功能、二次开发请参考 API 文档
+
+---
+
+**开始您的电力市场仿真之旅！** 🎓⚡ 

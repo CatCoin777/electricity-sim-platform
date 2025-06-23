@@ -3,13 +3,13 @@
 mock_users = {
     "student1": {
         "username": "student1",
-        "full_name": "张三",
+        "full_name": "Bob",
         "role": "student",
         "hashed_password": "123456"
     },
     "teacher1": {
         "username": "teacher1",
-        "full_name": "李老师",
+        "full_name": "Professor",
         "role": "teacher",
         "hashed_password": "admin"
     }
