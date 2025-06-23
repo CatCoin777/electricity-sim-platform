@@ -13,6 +13,10 @@ async def login(user_in: UserIn):
     user = mock_users.get(user_in.username)
     if not user or user["hashed_password"] != user_in.password:
         raise HTTPException(status_code=401, detail="用户名或密码错误")
+    
+    # 验证角色是否匹配
+    if user["role"] != user_in.role:
+        raise HTTPException(status_code=401, detail="角色不匹配")
 
     token = create_access_token({"sub": user["username"], "role": user["role"]})
     return {"access_token": token, "token_type": "bearer", "role": user["role"]}

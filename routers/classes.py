@@ -11,15 +11,15 @@ from typing import List, Dict
 import json
 from datetime import datetime, timedelta
 import uuid
+import os
 
-router = APIRouter(prefix="/classes", tags=["Classes"])
+router = APIRouter(prefix="/api/classes", tags=["Classes"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
-@router.post("/create")
+@router.post("/")
 async def create_class(
-    class_name: str = Body(...),
-    description: str = Body(None),
+    class_data: Dict = Body(...),
     token: str = Depends(oauth2_scheme)
 ):
     """Create a new class (Teacher only)"""
@@ -30,26 +30,28 @@ async def create_class(
     teacher_id = payload.get("sub")
     class_id = f"class_{uuid.uuid4().hex[:8]}"
     
-    class_info = ClassInfo(
-        class_id=class_id,
-        class_name=class_name,
-        teacher_id=teacher_id,
-        students=[],
-        created_at=datetime.now(),
-        description=description
-    )
+    class_info = {
+        "class_id": class_id,
+        "class_name": class_data.get("name", ""),
+        "teacher_id": teacher_id,
+        "students": [],
+        "created_at": datetime.now().isoformat(),
+        "description": class_data.get("description", ""),
+        "max_students": class_data.get("max_students"),
+        "academic_year": class_data.get("academic_year", "")
+    }
     
     # Save class information
-    save_class_info(class_info.dict())
+    save_class_info(class_info)
     
     return {
         "message": "Class created successfully",
         "class_id": class_id,
-        "class_info": class_info.dict()
+        "class_info": class_info
     }
 
 
-@router.get("/my-classes")
+@router.get("/")
 async def get_my_classes(token: str = Depends(oauth2_scheme)):
     """Get classes for current user"""
     payload = decode_access_token(token)
@@ -64,21 +66,31 @@ async def get_my_classes(token: str = Depends(oauth2_scheme)):
     
     if user_role == "teacher":
         # Teacher: get classes they created
-        my_classes = [cls for cls in all_classes if cls["teacher_id"] == user_id]
+        for class_id, class_info in all_classes.items():
+            if class_info["teacher_id"] == user_id:
+                class_info["id"] = class_id
+                class_info["name"] = class_info["class_name"]  # Add name field for frontend
+                class_info["student_count"] = len(class_info.get("students", []))
+                my_classes.append(class_info)
     else:
         # Student: get classes they belong to
-        my_classes = [cls for cls in all_classes if user_id in cls["students"]]
+        for class_id, class_info in all_classes.items():
+            if user_id in class_info.get("students", []):
+                class_info["id"] = class_id
+                class_info["name"] = class_info["class_name"]  # Add name field for frontend
+                class_info["student_count"] = len(class_info.get("students", []))
+                my_classes.append(class_info)
     
     return my_classes
 
 
-@router.post("/{class_id}/add-students")
-async def add_students_to_class(
+@router.post("/{class_id}/add-student")
+async def add_student_to_class(
     class_id: str,
-    student_ids: List[str] = Body(...),
+    student_data: Dict = Body(...),
     token: str = Depends(oauth2_scheme)
 ):
-    """Add students to class (Teacher only)"""
+    """Add a student to class (Teacher only)"""
     payload = decode_access_token(token)
     if not payload or payload.get("role") != "teacher":
         raise HTTPException(status_code=403, detail="Only teachers can add students")
@@ -92,36 +104,42 @@ async def add_students_to_class(
     if class_info["teacher_id"] != payload.get("sub"):
         raise HTTPException(status_code=403, detail="You are not the teacher of this class")
     
-    # Validate students exist
-    valid_students = []
-    for student_id in student_ids:
-        if student_id in mock_users and mock_users[student_id]["role"] == "student":
-            valid_students.append(student_id)
-        else:
-            print(f"Warning: Student {student_id} does not exist or is not a student")
+    # Get student username
+    student_username = student_data.get("username")
+    if not student_username:
+        raise HTTPException(status_code=400, detail="Student username is required")
     
-    # Add students (avoid duplicates)
-    existing_students = set(class_info["students"])
-    new_students = [s for s in valid_students if s not in existing_students]
-    class_info["students"].extend(new_students)
+    # Validate student exists
+    if student_username not in mock_users or mock_users[student_username]["role"] != "student":
+        raise HTTPException(status_code=404, detail="Student not found or is not a student")
     
-    # Save updates
-    save_class_info(class_info)
-    
-    return {
-        "message": f"Successfully added {len(new_students)} students",
-        "added_students": new_students,
-        "total_students": len(class_info["students"])
-    }
+    # Add student (avoid duplicates)
+    if student_username not in class_info.get("students", []):
+        if "students" not in class_info:
+            class_info["students"] = []
+        class_info["students"].append(student_username)
+        
+        # Save updates
+        save_class_info(class_info)
+        
+        return {
+            "message": "Student added successfully",
+            "student_username": student_username
+        }
+    else:
+        return {
+            "message": "Student already in class",
+            "student_username": student_username
+        }
 
 
-@router.delete("/{class_id}/remove-students")
-async def remove_students_from_class(
+@router.delete("/{class_id}/remove-student/{student_id}")
+async def remove_student_from_class(
     class_id: str,
-    student_ids: List[str] = Body(...),
+    student_id: str,
     token: str = Depends(oauth2_scheme)
 ):
-    """Remove students from class (Teacher only)"""
+    """Remove a student from class (Teacher only)"""
     payload = decode_access_token(token)
     if not payload or payload.get("role") != "teacher":
         raise HTTPException(status_code=403, detail="Only teachers can remove students")
@@ -135,24 +153,22 @@ async def remove_students_from_class(
     if class_info["teacher_id"] != payload.get("sub"):
         raise HTTPException(status_code=403, detail="You are not the teacher of this class")
     
-    # Remove students
-    removed_students = []
-    for student_id in student_ids:
-        if student_id in class_info["students"]:
-            class_info["students"].remove(student_id)
-            removed_students.append(student_id)
-    
-    # Save updates
-    save_class_info(class_info)
-    
-    return {
-        "message": f"Successfully removed {len(removed_students)} students",
-        "removed_students": removed_students,
-        "total_students": len(class_info["students"])
-    }
+    # Remove student
+    if student_id in class_info.get("students", []):
+        class_info["students"].remove(student_id)
+        
+        # Save updates
+        save_class_info(class_info)
+        
+        return {
+            "message": "Student removed successfully",
+            "student_id": student_id
+        }
+    else:
+        raise HTTPException(status_code=404, detail="Student not found in class")
 
 
-@router.get("/all-students")
+@router.get("/students")
 async def get_all_students(token: str = Depends(oauth2_scheme)):
     """Get all students (Teacher only)"""
     payload = decode_access_token(token)
@@ -323,6 +339,118 @@ async def get_my_assignments(token: str = Depends(oauth2_scheme)):
             all_assignments.append(assignment)
     
     return all_assignments
+
+
+@router.get("/{class_id}")
+async def get_class_details(
+    class_id: str,
+    token: str = Depends(oauth2_scheme)
+):
+    """Get class details"""
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    class_info = get_class_info(class_id)
+    if not class_info:
+        raise HTTPException(status_code=404, detail="Class not found")
+    
+    # Check permissions
+    user_id = payload.get("sub")
+    user_role = payload.get("role")
+    
+    if user_role == "teacher":
+        if class_info["teacher_id"] != user_id:
+            raise HTTPException(status_code=403, detail="You are not the teacher of this class")
+    else:
+        if user_id not in class_info.get("students", []):
+            raise HTTPException(status_code=403, detail="You are not a member of this class")
+    
+    # Add student details
+    students_with_details = []
+    for student_username in class_info.get("students", []):
+        if student_username in mock_users:
+            student_info = mock_users[student_username]
+            students_with_details.append({
+                "id": student_username,
+                "username": student_username,
+                "full_name": student_info["full_name"],
+                "email": student_info.get("email", ""),
+                "joined_at": class_info.get("created_at", "")
+            })
+    
+    class_info["students"] = students_with_details
+    class_info["id"] = class_id
+    class_info["student_count"] = len(students_with_details)
+    
+    return class_info
+
+
+@router.delete("/{class_id}")
+async def delete_class(
+    class_id: str,
+    token: str = Depends(oauth2_scheme)
+):
+    """Delete a class (Teacher only)"""
+    payload = decode_access_token(token)
+    if not payload or payload.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Only teachers can delete classes")
+    
+    class_info = get_class_info(class_id)
+    if not class_info:
+        raise HTTPException(status_code=404, detail="Class not found")
+    
+    # Check permissions
+    if class_info["teacher_id"] != payload.get("sub"):
+        raise HTTPException(status_code=403, detail="You are not the teacher of this class")
+    
+    # Delete class from the JSON file
+    all_classes = load_all_classes()
+    if class_id in all_classes:
+        del all_classes[class_id]
+        
+        # Save updated classes back to file
+        filename = "mock_data/classes.json"
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(all_classes, f, ensure_ascii=False, indent=2, default=str)
+    
+    return {"message": "Class deleted successfully"}
+
+
+@router.put("/{class_id}")
+async def update_class(
+    class_id: str,
+    class_data: Dict = Body(...),
+    token: str = Depends(oauth2_scheme)
+):
+    """Update a class (Teacher only)"""
+    payload = decode_access_token(token)
+    if not payload or payload.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Only teachers can update classes")
+    
+    class_info = get_class_info(class_id)
+    if not class_info:
+        raise HTTPException(status_code=404, detail="Class not found")
+    
+    # Check permissions
+    if class_info["teacher_id"] != payload.get("sub"):
+        raise HTTPException(status_code=403, detail="You are not the teacher of this class")
+    
+    # Update class information
+    class_info.update({
+        "class_name": class_data.get("name", class_info["class_name"]),
+        "description": class_data.get("description", class_info.get("description", "")),
+        "max_students": class_data.get("max_students", class_info.get("max_students")),
+        "academic_year": class_data.get("academic_year", class_info.get("academic_year", ""))
+    })
+    
+    # Save updates
+    save_class_info(class_info)
+    
+    return {
+        "message": "Class updated successfully",
+        "class_info": class_info
+    }
 
 
 # Helper functions

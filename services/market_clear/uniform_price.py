@@ -1,15 +1,16 @@
 from schemas.simulation import DispatchResult
+from fastapi import HTTPException
 
 
 def clear_market_uniform(scenario, bid_data):
     demand = scenario["demand"]
-    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1]["offer"])
+    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1].get('offer', x[1].get('price')))
     winners = sorted_bids[:demand]
 
-    if len(winners) < demand:
-        raise ValueError("Not enough bids to satisfy demand")
+    if len(sorted_bids) < demand:
+        raise HTTPException(status_code=400, detail=f"Not enough bids to satisfy demand. Demand={demand}, bids={len(sorted_bids)}")
 
-    clearing_price = winners[-1][1]["offer"]
+    clearing_price = winners[-1][1].get('offer', winners[-1][1].get('price'))
     dispatched = {}
     profits = {}
 

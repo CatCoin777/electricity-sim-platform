@@ -17,7 +17,7 @@ from typing import List, Dict
 import json
 from datetime import datetime
 
-router = APIRouter(prefix="/evaluation", tags=["Evaluation"])
+router = APIRouter(prefix="/api/evaluation", tags=["Evaluation"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 

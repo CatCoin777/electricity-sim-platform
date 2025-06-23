@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, users, admin, simulation, evaluation, classes
+from routers import auth, users, admin, simulation, evaluation, classes, scenarios, bids
 
 app = FastAPI(title="电力市场仿真平台")
 
@@ -20,6 +20,8 @@ app.include_router(admin.router)
 app.include_router(simulation.router)
 app.include_router(evaluation.router)
 app.include_router(classes.router)
+app.include_router(scenarios.router)
+app.include_router(bids.router)
 
 
 @app.get("/")

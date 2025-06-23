@@ -5,13 +5,13 @@ from schemas.simulation import DispatchResult
 
 def clear_market_fixed_uniform(scenario, bid_data):
     demand = scenario["demand"]
-    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1]["offer"])
+    sorted_bids = sorted(bid_data.items(), key=lambda x: x[1].get('offer', x[1].get('price')))
     winners = sorted_bids[:demand]
 
     if len(winners) < demand:
         raise ValueError("Not enough bids to satisfy demand")
 
-    clearing_price = winners[-1][1]["offer"]
+    clearing_price = winners[-1][1].get('offer', winners[-1][1].get('price'))
     dispatched = {}
     profits = {}
 

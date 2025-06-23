@@ -9,14 +9,14 @@ def clear_market_two_stage(scenario: Dict, bid_data: Dict[str, dict]) -> Dispatc
     demand_rt = scenario.get("demand_RT", scenario["demand"])  # 实时需求
 
     # Step 1: 日前市场出清（DA）
-    sorted_da = sorted(bid_data.items(), key=lambda x: x[1].get("offer_DA", x[1]["offer"]))
+    sorted_da = sorted(bid_data.items(), key=lambda x: x[1].get("offer_DA", x[1].get("offer", x[1].get("price"))))
     winners_da = sorted_da[:demand_da]
-    price_da = winners_da[-1][1].get("offer_DA", winners_da[-1][1]["offer"])
+    price_da = winners_da[-1][1].get("offer_DA", winners_da[-1][1].get("offer", winners_da[-1][1].get("price")))
 
     # Step 2: 实时市场补差值（RT）
-    sorted_rt = sorted(bid_data.items(), key=lambda x: x[1].get("offer_RT", x[1]["offer"]))
+    sorted_rt = sorted(bid_data.items(), key=lambda x: x[1].get("offer_RT", x[1].get("offer", x[1].get("price"))))
     winners_rt = sorted_rt[:demand_rt]
-    price_rt = winners_rt[-1][1].get("offer_RT", winners_rt[-1][1]["offer"])
+    price_rt = winners_rt[-1][1].get("offer_RT", winners_rt[-1][1].get("offer", winners_rt[-1][1].get("price")))
 
     dispatched = {}
     profits = {}
@@ -25,8 +25,8 @@ def clear_market_two_stage(scenario: Dict, bid_data: Dict[str, dict]) -> Dispatc
         cost = bid.get("cost", 0)
         fixed_cost = bid.get("fixed_cost", 0)
 
-        offer_da = bid.get("offer_DA", bid["offer"])
-        offer_rt = bid.get("offer_RT", bid["offer"])
+        offer_da = bid.get("offer_DA", bid.get("offer", bid.get("price")))
+        offer_rt = bid.get("offer_RT", bid.get("offer", bid.get("price")))
 
         in_da = student_id in dict(winners_da)
         in_rt = student_id in dict(winners_rt)

@@ -37,6 +37,15 @@ def save_scenario(scenario_id, scenario_data):
     save_json(SCENARIO_FILE, all_data)
 
 
+def delete_scenario(scenario_id):
+    all_data = load_json(SCENARIO_FILE)
+    if scenario_id in all_data:
+        del all_data[scenario_id]
+        save_json(SCENARIO_FILE, all_data)
+        return True
+    return False
+
+
 def list_scenarios():
     return load_json(SCENARIO_FILE)
 
