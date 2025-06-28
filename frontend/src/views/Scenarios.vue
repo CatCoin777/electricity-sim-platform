@@ -70,6 +70,7 @@ export default {
     async loadScenarios() {
       try {
         const response = await api.get('/scenarios/')
+        console.log('Scenarios response:', response.data)
         this.scenarios = response.data
       } catch (error) {
         console.error('Error loading scenarios:', error)

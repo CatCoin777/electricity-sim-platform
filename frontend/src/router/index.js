@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Scenarios from '../views/Scenarios.vue'
+import ScenarioDetail from '../views/ScenarioDetail.vue'
 import Bidding from '../views/Bidding.vue'
 import Results from '../views/Results.vue'
 import Profile from '../views/Profile.vue'
@@ -28,6 +29,12 @@ const routes = [
     path: '/scenarios',
     name: 'Scenarios',
     component: Scenarios,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/scenarios/:id',
+    name: 'ScenarioDetail',
+    component: ScenarioDetail,
     meta: { requiresAuth: true }
   },
   {

@@ -13,13 +13,6 @@
           <label class="form-label">Password</label>
           <input type="password" class="form-control" v-model="loginForm.password" required>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Role</label>
-          <select class="form-select" v-model="loginForm.role">
-            <option value="student">Student</option>
-            <option value="teacher">Teacher</option>
-          </select>
-        </div>
         <button type="submit" class="btn btn-primary w-100" :disabled="loading">
           {{ loading ? 'Logging in...' : 'Login' }}
         </button>
@@ -77,8 +70,7 @@ export default {
       loading: false,
       loginForm: {
         username: '',
-        password: '',
-        role: 'student'
+        password: ''
       },
       registerForm: {
         username: '',
@@ -100,7 +92,7 @@ export default {
         const response = await api.post('/auth/login', this.loginForm)
         const { access_token, role } = response.data
         
-        // 创建用户对象
+        // 创建用户对象，使用后端返回的角色
         const user = {
           username: this.loginForm.username,
           role: role
