@@ -24,6 +24,19 @@
                 <input type="number" class="form-control" v-model="scenarioForm.demand" min="1" required>
               </div>
               <div class="mb-3">
+                <label class="form-label">Market Type</label>
+                <select class="form-select" v-model="scenarioForm.market_type" required>
+                  <option value="uniform_price">Uniform Price</option>
+                  <option value="pay_as_bid">Pay-as-Bid</option>
+                  <option value="fixed_cost_uniform">Fixed Cost Uniform</option>
+                  <option value="fixed_cost_pay_as_bid">Fixed Cost Pay-as-Bid</option>
+                  <option value="zone_limit_uniform">Zone Limit Uniform</option>
+                  <option value="constrained_on">Constrained On</option>
+                  <option value="risk_adjusted_uniform">Risk Adjusted Uniform</option>
+                  <option value="two_stage">Two Stage Market</option>
+                </select>
+              </div>
+              <div class="mb-3">
                 <label class="form-label">Experiment Type</label>
                 <select class="form-select" v-model="scenarioForm.experiment_type">
                   <option value="open">Open Experiment</option>
@@ -127,6 +140,7 @@ export default {
         name: '',
         description: '',
         demand: 10,
+        market_type: 'uniform_price',
         experiment_type: 'open',
         duration: 60
       },
@@ -160,6 +174,7 @@ export default {
           name: '',
           description: '',
           demand: 10,
+          market_type: 'uniform_price',
           experiment_type: 'open',
           duration: 60
         }

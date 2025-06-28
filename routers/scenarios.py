@@ -21,7 +21,14 @@ def get_scenarios(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Invalid token")
     
     scenarios = list_scenarios()
-    return list(scenarios.values())
+    # Add id field to each scenario
+    scenarios_list = []
+    for scenario_id, scenario in scenarios.items():
+        scenario_with_id = scenario.copy()
+        scenario_with_id["id"] = scenario_id
+        scenarios_list.append(scenario_with_id)
+    
+    return scenarios_list
 
 
 @router.get("/{scenario_id}")
@@ -51,13 +58,19 @@ def create_scenario(scenario_data: Dict[str, Any], token: str = Depends(oauth2_s
     # Generate scenario ID
     scenario_id = f"scenario_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
+    # Get market type and add to enabled mechanisms
+    market_type = scenario_data.get("market_type", "uniform_price")
+    
     # Add default fields
     scenario_data.update({
         "id": scenario_id,
+        "scenario_id": scenario_id,  # Add scenario_id for compatibility
         "created_at": datetime.now().isoformat(),
         "status": "pending",
         "participants": [],
-        "created_by": payload.get("sub")
+        "created_by": payload.get("sub"),
+        "enabled_mechanisms": [market_type],  # Add the selected market type
+        "is_open": scenario_data.get("experiment_type") == "open"
     })
     
     save_scenario(scenario_id, scenario_data)
